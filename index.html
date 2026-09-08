@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#C41230">
+<title>LWH PTO Calendar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo-header.png">
+<style>
+  :root {
+    --red: #C41230;
+    --red-deep: #7D1935;
+    --ink-black: #1A1A1A;
+    --gold: #C9A227;
+    --paper: #F2F2F0;
+    --paper-line: #E1DFDA;
+    --slate: #5B6770;
+
+    --t-full-pto: #2F7A63;
+    --t-half-pto: #5FA88F;
+    --t-personal-day: #3B6FA0;
+    --t-personal-time: #6FA8C9;
+    --t-callin: #C9A227;
+    --t-late: #D97B29;
+    --t-excused: #8A8F98;
+    --t-noshow: #B23A48;
+    --t-disciplinary: #7A1F2B;
+    --t-bereavement: #7A5C8A;
+    --t-comp: #6C63B5;
+    --t-other: #4A4A4A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink-black);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* -------- Header, matching the customer portal -------- */
+  .masthead {
+    background: linear-gradient(100deg, var(--red) 0%, var(--red) 78%, var(--ink-black) 78%, var(--ink-black) 100%);
+    color: #fff;
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .masthead .badge {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex: none; overflow: hidden;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+  }
+  .masthead .badge img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+  .masthead .titles { flex: 1; min-width: 0; }
+  .masthead .wordmark {
+    font-weight: 700; font-size: 17px; margin: 0;
+    letter-spacing: 0.01em;
+  }
+  .masthead .subtitle {
+    font-size: 12px; color: #F0C3CE; margin: 1px 0 0;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .masthead .status {
+    text-align: right; font-size: 12px; color: #F0C3CE;
+  }
+  .masthead .status strong { display: block; color: #fff; font-size: 13px; }
+
+  nav.subnav {
+    background: var(--ink-black);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  nav.subnav button {
+    background: none; border: none; color: #ddd;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 13px 14px; cursor: pointer; letter-spacing: 0.01em;
+    border-bottom: 3px solid transparent;
+  }
+  nav.subnav button:hover { color: #fff; }
+  nav.subnav button.active { color: #fff; border-bottom-color: var(--gold); }
+
+  /* -------- Toolbar -------- */
+  .toolbar {
+    background: #fff;
+    border-bottom: 1px solid var(--paper-line);
+    padding: 14px 32px;
+    display: flex;
+    align-items: flex-end;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .toolbar label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--slate); display: block; margin-bottom: 4px;
+  }
+  .toolbar select, .toolbar input[type="text"] {
+    font-family: inherit; font-size: 14px; padding: 7px 10px;
+    border: 1px solid var(--paper-line); border-radius: 3px;
+    background: #fff; color: var(--ink-black); min-width: 160px;
+  }
+  .toolbar .field { display: flex; flex-direction: column; }
+  .toolbar .checkfield { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; font-size: 13px; color: var(--slate); }
+  .toolbar .spacer { flex: 1; }
+  .month-nav { display: flex; align-items: center; gap: 6px; }
+  .month-nav button {
+    width: 30px; height: 30px; border-radius: 3px; border: 1px solid var(--paper-line);
+    background: #fff; cursor: pointer; font-size: 15px; color: var(--red-deep);
+  }
+  .month-nav button:hover { background: #FBEFF1; }
+  .month-nav .month-label {
+    font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 600;
+    font-size: 17px; min-width: 150px; text-align: center; color: var(--red-deep);
+  }
+
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 3px; border: 1px solid var(--red);
+    background: var(--red); color: #fff; cursor: pointer;
+  }
+  .btn:hover { background: var(--red-deep); }
+  .btn.secondary { background: #fff; color: var(--red); }
+  .btn.secondary:hover { background: #FBEFF1; }
+
+  .legend {
+    padding: 12px 32px; background: #fff; border-bottom: 1px solid var(--paper-line);
+    display: flex; flex-wrap: wrap; gap: 8px 12px;
+  }
+  .legend-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 5px 10px 5px 8px; border-radius: 14px; border: 1px solid var(--paper-line);
+    cursor: pointer; background: #fff; color: var(--slate); user-select: none;
+  }
+  .legend-chip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .legend-chip.off { opacity: 0.35; text-decoration: line-through; }
+
+  .summary { padding: 10px 32px; font-size: 13px; color: var(--slate); background: var(--paper); }
+  .summary strong { color: var(--ink-black); }
+
+  .calendar-wrap { padding: 8px 32px 44px; }
+
+  table.cal { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  table.cal th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--slate); text-align: left; padding: 6px 8px;
+    border-bottom: 2px solid var(--red);
+  }
+  table.cal td {
+    vertical-align: top; border: 1px solid var(--paper-line);
+    padding: 6px 7px 8px; height: 108px; background: #fff;
+  }
+  table.cal td.weekend { background: #FAFAF9; }
+  table.cal td.outside { background: #EDEBE6; }
+  table.cal td.outside .daynum { color: #B7B2A8; }
+  table.cal td.today { box-shadow: inset 0 0 0 2px var(--gold); }
+
+  .daynum {
+    font-family: "Oswald", "Arial Narrow", sans-serif; font-size: 16px; font-weight: 600;
+    color: var(--ink-black); display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .daynum .count {
+    font-family: "Inter", sans-serif; font-size: 11px; font-weight: 700; color: #fff;
+    background: var(--red); border-radius: 9px; padding: 1px 7px;
+  }
+  .daynum .count.zero { display: none; }
+
+  .entry { font-size: 11.5px; line-height: 1.35; margin-bottom: 3px; padding-left: 8px; position: relative; }
+  .entry.pending { opacity: 0.7; font-style: italic; }
+  .entry .dot { width: 7px; height: 7px; border-radius: 50%; position: absolute; left: 0; top: 4px; }
+  .entry .name { font-weight: 600; }
+  .entry .type { color: var(--slate); }
+
+  .empty-cell-hint { font-size: 11px; color: #C9C4B8; }
+
+  .state-screen {
+    max-width: 520px; margin: 70px auto; background: #fff; border: 1px solid var(--paper-line);
+    border-radius: 4px; padding: 40px; text-align: center;
+  }
+  .state-screen h2 { font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 500; font-size: 22px; margin: 0 0 10px; }
+  .state-screen p { color: var(--slate); font-size: 14px; line-height: 1.6; }
+  .state-screen.error p { color: #B23A48; }
+
+  .hidden { display: none !important; }
+
+  @media print {
+    @page { size: landscape; margin: 0.4in; }
+    nav.subnav, .toolbar, .btn { display: none !important; }
+    .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .calendar-wrap { padding: 0; }
+    table.cal td { height: 90px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="masthead">
+    <div class="badge"><img src="logo-header.png" alt="LWH logo"></div>
+    <div class="titles">
+      <p class="wordmark">Logistics Warehouse, Inc.</p>
+      <p class="subtitle">PTO &amp; Absence Calendar</p>
+    </div>
+    <div class="status">
+      <strong id="dataStatus">Loading…</strong>
+      <span id="dataTimestamp"></span>
+    </div>
+  </div>
+  <nav class="subnav">
+    <button class="active">Calendar</button>
+  </nav>
+
+  <div id="loadingScreen" class="state-screen">
+    <h2>Loading absence data…</h2>
+    <p>Pulling the latest PTO Requests, Employees, and Absence Types from the tracker.</p>
+  </div>
+
+  <div id="errorScreen" class="state-screen error hidden">
+    <h2>Couldn't load the data</h2>
+    <p id="errorDetail"></p>
+    <p>Check that the three tabs are still published (File &gt; Share &gt; Publish to web) and that the URLs in <code>app.js</code> are current.</p>
+    <button class="btn" id="retryBtn" style="margin-top:10px;">Try again</button>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="toolbar">
+      <div class="month-nav">
+        <button id="prevMonth" title="Previous month">‹</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button id="nextMonth" title="Next month">›</button>
+      </div>
+      <div class="field">
+        <label for="deptSelect">Department</label>
+        <select id="deptSelect"><option value="ALL">All Departments</option></select>
+      </div>
+      <div class="field">
+        <label for="nameSearch">Employee</label>
+        <input type="text" id="nameSearch" placeholder="Search name…">
+      </div>
+      <div class="checkfield">
+        <input type="checkbox" id="showPending">
+        <label for="showPending" style="margin:0; text-transform:none; letter-spacing:0; font-size:13px;">Include Pending</label>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn secondary" id="refreshBtn">Refresh data</button>
+      <button class="btn" id="printBtn">Print / Save PDF</button>
+    </div>
+
+    <div class="legend" id="legend"></div>
+    <div class="summary" id="summary"></div>
+
+    <div class="calendar-wrap">
+      <table class="cal">
+        <thead>
+          <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+        </thead>
+        <tbody id="calBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
