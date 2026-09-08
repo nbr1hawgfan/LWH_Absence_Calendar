@@ -5,9 +5,9 @@
 // export re-runs, unlike a Drive file link.
 // ============================================================================
 const CONFIG = {
-  PTO_REQUESTS_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=491852524&single=true&output=csv',
-  EMPLOYEES_CSV_URL:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=1288918784&single=true&output=csv',
-  ABSENCE_TYPES_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=2133598834&single=true&output=csv'
+  PTO_REQUESTS_CSV_URL:   'PASTE_PUBLISHED_CSV_URL_FOR_Export_PTORequests_HERE',
+  EMPLOYEES_CSV_URL:      'PASTE_PUBLISHED_CSV_URL_FOR_Export_Employees_HERE',
+  ABSENCE_TYPES_CSV_URL:  'PASTE_PUBLISHED_CSV_URL_FOR_Export_AbsenceTypes_HERE'
 };
 
 const TYPE_COLORS = {
@@ -114,9 +114,12 @@ function escapeHtml(s) {
 // ----------------------------------------------------------------------------
 // State
 // ----------------------------------------------------------------------------
-let expandedRecords = [];   // {date, dept, name, type, status}
+let expandedRecords = [];   // {date, dept, name, type, status} - day-by-day, for the calendar
+let rawRequests = [];       // {employeeId, dept, name, type, status, daysCount, year} - one per actual request, real DaysCount, for balance lookup
+let employeesById = {};     // EmployeeID -> employee row, for the balance lookup tab
 let activeTypes = new Set();
 let viewYear, viewMonth;    // 0-indexed month, defaults to today
+let currentView = 'calendar'; // 'calendar' | 'balances'
 
 const els = {
   loading: document.getElementById('loadingScreen'),
@@ -162,6 +165,87 @@ els.modalClose.addEventListener('click', closeDayModal);
 els.dayModal.addEventListener('click', (e) => { if (e.target === els.dayModal) closeDayModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDayModal(); });
 
+// ----------------------------------------------------------------------------
+// Nav tab switching (Calendar / PTO Balances)
+// ----------------------------------------------------------------------------
+const calendarViewEl = document.getElementById('calendarView');
+const balancesViewEl = document.getElementById('balancesView');
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentView = btn.dataset.view;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+    calendarViewEl.classList.toggle('hidden', currentView !== 'calendar');
+    balancesViewEl.classList.toggle('hidden', currentView !== 'balances');
+  });
+});
+
+// ----------------------------------------------------------------------------
+// PTO Balances tab
+// ----------------------------------------------------------------------------
+const employeeSelect = document.getElementById('employeeSelect');
+const balancesWrap = document.getElementById('balancesWrap');
+document.getElementById('printBalanceBtn').addEventListener('click', () => window.print());
+employeeSelect.addEventListener('change', () => renderBalanceCard(employeeSelect.value));
+
+function buildEmployeeOptions(empRows) {
+  const current = employeeSelect.value;
+  const sorted = empRows.slice().sort((a, b) => a.Name.localeCompare(b.Name));
+  employeeSelect.innerHTML = '<option value="">Select an employee…</option>' +
+    sorted.map(e => `<option value="${escapeHtml(e.EmployeeID)}">${escapeHtml(e.Name)}</option>`).join('');
+  if (current && employeesById[current]) {
+    employeeSelect.value = current;
+    renderBalanceCard(current);
+  }
+}
+
+function renderBalanceCard(employeeId) {
+  if (!employeeId) {
+    balancesWrap.innerHTML = '<div class="balance-empty">Pick an employee above to see their current PTO balance and this year\'s absence history.</div>';
+    return;
+  }
+  const emp = employeesById[employeeId];
+  if (!emp) return;
+
+  const balance = parseFloat(emp.PTOBalance) || 0;
+  const allocation = parseFloat(emp.PTOAllocation) || 0;
+  const isLow = balance < 2;
+  const isInactive = String(emp.EmployeeStatus).toLowerCase() !== 'active';
+
+  const thisYear = new Date().getFullYear();
+  const usage = {};
+  rawRequests.forEach(r => {
+    if (r.employeeId !== employeeId || r.status !== 'Approved' || r.year !== thisYear) return;
+    if (!usage[r.type]) usage[r.type] = { count: 0, days: 0 };
+    usage[r.type].count++;
+    usage[r.type].days += r.daysCount;
+  });
+  const usageTypes = Object.keys(usage).sort((a, b) => usage[b].days - usage[a].days);
+
+  const usageHtml = usageTypes.length
+    ? usageTypes.map(t => `
+        <div class="balance-type-row">
+          <span class="type-label"><span class="dot" style="background:${colorFor(t)}"></span>${escapeHtml(t)}</span>
+          <span class="stats">${usage[t].count} request${usage[t].count === 1 ? '' : 's'} · ${usage[t].days.toFixed(1)} day${usage[t].days === 1 ? '' : 's'}</span>
+        </div>`).join('')
+    : `<div class="balance-no-usage">No absences recorded for ${thisYear} yet.</div>`;
+
+  balancesWrap.innerHTML = `
+    <div class="balance-card">
+      <div class="balance-card-header">
+        <div class="name">${escapeHtml(emp.Name)}</div>
+        <div class="meta">${escapeHtml(emp.Department || 'Unassigned')} — reports to ${escapeHtml(emp.Manager || 'N/A')}</div>
+        ${isInactive ? '<span class="status-tag">INACTIVE</span>' : ''}
+      </div>
+      <div class="balance-numbers">
+        <div class="num-box"><div class="label">Annual Allocation</div><div class="value">${allocation.toFixed(1)}</div></div>
+        <div class="num-box ${isLow ? 'low' : ''}"><div class="label">Current Balance</div><div class="value">${balance.toFixed(1)}${isLow ? ' ⚠' : ''}</div></div>
+      </div>
+      <div class="balance-section-title">${thisYear} Absences by Type</div>
+      ${usageHtml}
+    </div>
+  `;
+}
+
 document.getElementById('prevMonth').addEventListener('click', () => { shiftMonth(-1); });
 document.getElementById('nextMonth').addEventListener('click', () => { shiftMonth(1); });
 document.getElementById('refreshBtn').addEventListener('click', () => loadData(true));
@@ -199,32 +283,50 @@ async function loadData(isRefresh) {
       fetchCsv(CONFIG.ABSENCE_TYPES_CSV_URL)
     ]);
 
-    const employeesById = {};
-    empRows.forEach(e => { employeesById[e.EmployeeID] = e; });
+    const employeesByIdLocal = {};
+    empRows.forEach(e => { employeesByIdLocal[e.EmployeeID] = e; });
+    employeesById = employeesByIdLocal;
 
     const activeTypeNames = typeRows
       .filter(t => String(t.Active).toUpperCase() === 'TRUE')
       .map(t => t.AbsenceTypeName);
 
     const records = [];
+    const raw = [];
     reqRows.forEach(r => {
       const status = r.Status;
       if (status !== 'Approved' && status !== 'Pending') return; // skip Denied/Cancelled
-      const emp = employeesById[r.EmployeeID];
+      const emp = employeesByIdLocal[r.EmployeeID];
       const dept = emp ? emp.Department : 'Unknown';
       const name = r.EmployeeName || (emp ? emp.Name : 'Unknown');
       const start = parseIsoDate(r.StartDate);
       const end = parseIsoDate(r.EndDate);
+
       expandBusinessDays(start, end).forEach(d => {
         records.push({ date: d, dept: dept, name: name, type: r.AbsenceType, status: status });
       });
+
+      // Kept separate from the day-expanded records above: this uses the
+      // real DaysCount from the request itself (0.5 for a half day, the
+      // actual count for a multi-day request), not "one day per weekday
+      // in range" - the calendar's expansion would badly overcount usage
+      // for a balance-facing number (e.g. a wide date-range request that's
+      // really only 2 real days would show as 10).
+      if (start) {
+        raw.push({
+          employeeId: r.EmployeeID, dept: dept, name: name, type: r.AbsenceType,
+          status: status, daysCount: parseFloat(r.DaysCount) || 0, year: start.getFullYear()
+        });
+      }
     });
 
     expandedRecords = records;
+    rawRequests = raw;
     activeTypes = new Set(Object.keys(TYPE_COLORS).concat(activeTypeNames).concat(records.map(r => r.type)));
 
     buildDeptOptions(empRows);
     buildLegend(activeTypeNames.length ? activeTypeNames : [...new Set(records.map(r => r.type))]);
+    buildEmployeeOptions(empRows);
 
     if (viewYear === undefined) {
       const today = new Date();
