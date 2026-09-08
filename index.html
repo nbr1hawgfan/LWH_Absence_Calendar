@@ -184,6 +184,47 @@
   table.cal td.has-entries { cursor: pointer; }
   table.cal td.has-entries:hover { background: #FBEFF1; }
 
+  /* -------- PTO Balances tab -------- */
+  .balances-wrap { padding: 8px 32px 44px; max-width: 640px; }
+  .balance-empty { color: var(--slate); font-size: 14px; padding: 40px 0; text-align: center; }
+
+  .balance-card {
+    background: #fff; border: 1px solid var(--paper-line); border-radius: 4px; overflow: hidden;
+  }
+  .balance-card-header {
+    background: linear-gradient(100deg, var(--red) 0%, var(--red) 78%, var(--ink-black) 78%, var(--ink-black) 100%);
+    color: #fff; padding: 18px 22px;
+  }
+  .balance-card-header .name { font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 600; font-size: 22px; }
+  .balance-card-header .meta { font-size: 12.5px; color: #F0C3CE; margin-top: 3px; }
+  .balance-card-header .status-tag {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 3px; margin-top: 6px;
+  }
+
+  .balance-numbers { display: flex; border-bottom: 1px solid var(--paper-line); }
+  .balance-numbers .num-box { flex: 1; padding: 16px 22px; text-align: center; border-right: 1px solid var(--paper-line); }
+  .balance-numbers .num-box:last-child { border-right: none; }
+  .balance-numbers .num-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate); }
+  .balance-numbers .num-box .value { font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 600; font-size: 28px; color: var(--ink-black); margin-top: 2px; }
+  .balance-numbers .num-box.low .value { color: #B23A48; }
+
+  .balance-section-title {
+    padding: 14px 22px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate);
+  }
+  .balance-type-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 22px; border-top: 1px solid var(--paper-line); font-size: 13.5px;
+  }
+  .balance-type-row .type-label { display: flex; align-items: center; gap: 8px; }
+  .balance-type-row .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .balance-type-row .stats { color: var(--slate); font-size: 12.5px; }
+  .balance-no-usage { padding: 14px 22px 20px; color: var(--slate); font-size: 13px; }
+
+  @media print {
+    .balances-wrap { padding: 0; max-width: none; }
+  }
+
   /* -------- Mobile agenda view (shown below ~700px instead of the grid) -------- */
   .agenda-view { display: none; }
   .agenda-day {
@@ -229,6 +270,11 @@
     .legend { padding: 10px 16px; }
     .summary { padding: 8px 16px; }
     .calendar-wrap { padding: 4px 16px 30px; }
+
+    .balances-wrap { padding: 8px 16px 30px; max-width: none; }
+    .balance-numbers { flex-direction: column; }
+    .balance-numbers .num-box { border-right: none; border-bottom: 1px solid var(--paper-line); }
+    .balance-numbers .num-box:last-child { border-bottom: none; }
   }
 
   /* -------- Day detail modal (grid view - click a day to see everyone, untruncated) -------- */
@@ -324,7 +370,8 @@
     </div>
   </div>
   <nav class="subnav">
-    <button class="active">Calendar</button>
+    <button class="nav-btn active" data-view="calendar">Calendar</button>
+    <button class="nav-btn" data-view="balances">PTO Balances</button>
   </nav>
 
   <div id="loadingScreen" class="state-screen">
@@ -340,42 +387,58 @@
   </div>
 
   <div id="app" class="hidden">
-    <div class="toolbar">
-      <div class="month-nav">
-        <button id="prevMonth" title="Previous month">‹</button>
-        <span class="month-label" id="monthLabel"></span>
-        <button id="nextMonth" title="Next month">›</button>
+    <div id="calendarView">
+      <div class="toolbar">
+        <div class="month-nav">
+          <button id="prevMonth" title="Previous month">‹</button>
+          <span class="month-label" id="monthLabel"></span>
+          <button id="nextMonth" title="Next month">›</button>
+        </div>
+        <div class="field">
+          <label for="deptSelect">Department</label>
+          <select id="deptSelect"><option value="ALL">All Departments</option></select>
+        </div>
+        <div class="field">
+          <label for="nameSearch">Employee</label>
+          <input type="text" id="nameSearch" placeholder="Search name…">
+        </div>
+        <div class="checkfield">
+          <input type="checkbox" id="showPending">
+          <label for="showPending" style="margin:0; text-transform:none; letter-spacing:0; font-size:13px;">Include Pending</label>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn secondary" id="refreshBtn">Refresh data</button>
+        <button class="btn" id="printBtn">Print / Save PDF</button>
       </div>
-      <div class="field">
-        <label for="deptSelect">Department</label>
-        <select id="deptSelect"><option value="ALL">All Departments</option></select>
+
+      <div class="legend" id="legend"></div>
+      <div class="summary" id="summary"></div>
+
+      <div class="calendar-wrap">
+        <div class="grid-view">
+          <table class="cal">
+            <thead>
+              <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+            </thead>
+            <tbody id="calBody"></tbody>
+          </table>
+        </div>
+        <div class="agenda-view" id="agendaView"></div>
       </div>
-      <div class="field">
-        <label for="nameSearch">Employee</label>
-        <input type="text" id="nameSearch" placeholder="Search name…">
-      </div>
-      <div class="checkfield">
-        <input type="checkbox" id="showPending">
-        <label for="showPending" style="margin:0; text-transform:none; letter-spacing:0; font-size:13px;">Include Pending</label>
-      </div>
-      <div class="spacer"></div>
-      <button class="btn secondary" id="refreshBtn">Refresh data</button>
-      <button class="btn" id="printBtn">Print / Save PDF</button>
     </div>
 
-    <div class="legend" id="legend"></div>
-    <div class="summary" id="summary"></div>
-
-    <div class="calendar-wrap">
-      <div class="grid-view">
-        <table class="cal">
-          <thead>
-            <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
-          </thead>
-          <tbody id="calBody"></tbody>
-        </table>
+    <div id="balancesView" class="hidden">
+      <div class="toolbar">
+        <div class="field" style="min-width:260px;">
+          <label for="employeeSelect">Employee</label>
+          <select id="employeeSelect"><option value="">Select an employee…</option></select>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="printBalanceBtn">Print / Save PDF</button>
       </div>
-      <div class="agenda-view" id="agendaView"></div>
+      <div class="balances-wrap" id="balancesWrap">
+        <div class="balance-empty">Pick an employee above to see their current PTO balance and this year's absence history.</div>
+      </div>
     </div>
   </div>
 
