@@ -2,8 +2,14 @@
 // offline. Data fetches (the published CSVs, on a different origin)
 // are deliberately left to the network every time - caching those would
 // mean managers looking at stale absence data without knowing it.
+//
+// Network-first for the shell too: always prefer whatever's actually
+// deployed, only fall back to the cached copy if there's no network at
+// all. A cache-first strategy here meant editing app.js (e.g. updating
+// CONFIG URLs) and redeploying had no effect until this file itself
+// changed - the browser had no reason to check for a newer app.js.
 
-const CACHE_NAME = 'lwh-pto-calendar-v1';
+const CACHE_NAME = 'lwh-pto-calendar-v2';
 const SHELL_FILES = ['./index.html', './app.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -25,11 +31,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Only manage caching for same-origin shell files. Everything else
-  // (the CSV data fetches) passes straight through to the network.
+  // Only manage same-origin shell files. The CSV data fetches (a
+  // different origin) pass straight through, untouched.
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

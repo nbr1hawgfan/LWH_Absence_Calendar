@@ -5,9 +5,9 @@
 // export re-runs, unlike a Drive file link.
 // ============================================================================
 const CONFIG = {
-  PTO_REQUESTS_CSV_URL:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=491852524&single=true&output=csv',
-  EMPLOYEES_CSV_URL:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=1288918784&single=true&output=csv',
-  ABSENCE_TYPES_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=2133598834&single=true&output=csv'
+  PTO_REQUESTS_CSV_URL:   'PASTE_PUBLISHED_CSV_URL_FOR_Export_PTORequests_HERE',
+  EMPLOYEES_CSV_URL:      'PASTE_PUBLISHED_CSV_URL_FOR_Export_Employees_HERE',
+  ABSENCE_TYPES_CSV_URL:  'PASTE_PUBLISHED_CSV_URL_FOR_Export_AbsenceTypes_HERE'
 };
 
 const TYPE_COLORS = {
