@@ -181,6 +181,81 @@
 
   .empty-cell-hint { font-size: 11px; color: #C9C4B8; }
 
+  table.cal td.has-entries { cursor: pointer; }
+  table.cal td.has-entries:hover { background: #FBEFF1; }
+
+  /* -------- Mobile agenda view (shown below ~700px instead of the grid) -------- */
+  .agenda-view { display: none; }
+  .agenda-day {
+    background: #fff; border: 1px solid var(--paper-line); border-radius: 4px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .agenda-day.today { border-color: var(--gold); border-width: 2px; }
+  .agenda-day-header {
+    background: var(--paper); padding: 9px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .agenda-day-header .date {
+    font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 600; font-size: 14px; color: var(--ink-black);
+  }
+  .agenda-day-header .count {
+    font-size: 11px; font-weight: 700; color: #fff; background: var(--red); border-radius: 9px; padding: 1px 8px;
+  }
+  .agenda-entry-list { padding: 4px 14px; }
+  .agenda-entry {
+    font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--paper-line);
+    display: flex; align-items: flex-start; gap: 9px;
+  }
+  .agenda-entry:last-child { border-bottom: none; }
+  .agenda-entry .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; margin-top: 4px; }
+  .agenda-entry .name { font-weight: 600; }
+  .agenda-entry .meta { color: var(--slate); font-size: 12px; }
+  .agenda-entry.pending .meta { font-style: italic; }
+  .agenda-empty { text-align: center; color: var(--slate); padding: 50px 20px; font-size: 14px; }
+
+  @media (max-width: 700px) {
+    .grid-view { display: none; }
+    .agenda-view { display: block; }
+
+    .masthead { padding: 16px 18px; }
+    .masthead .wordmark { font-size: 15px; }
+    .toolbar { padding: 12px 16px; gap: 12px; }
+    .toolbar .field { width: 100%; }
+    .toolbar select, .toolbar input[type="text"] { width: 100%; min-width: 0; }
+    .toolbar .month-nav { width: 100%; justify-content: space-between; }
+    .toolbar .spacer { display: none; }
+    .toolbar .btn { width: 100%; }
+    .legend { padding: 10px 16px; }
+    .summary { padding: 8px 16px; }
+    .calendar-wrap { padding: 4px 16px 30px; }
+  }
+
+  /* -------- Day detail modal (grid view - click a day to see everyone, untruncated) -------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(26,26,26,0.55);
+    display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .modal-box {
+    background: #fff; border-radius: 4px; max-width: 420px; width: 100%; max-height: 80vh;
+    overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  }
+  .modal-header {
+    background: var(--red); color: #fff; padding: 14px 18px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 600; font-size: 16px;
+    position: sticky; top: 0;
+  }
+  .modal-close { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; }
+  .modal-body { padding: 6px 18px 18px; }
+  .modal-entry { padding: 9px 0; border-bottom: 1px solid var(--paper-line); display: flex; gap: 9px; align-items: flex-start; }
+  .modal-entry:last-child { border-bottom: none; }
+  .modal-entry .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex: none; }
+  .modal-entry .info .name { font-weight: 600; font-size: 13.5px; }
+  .modal-entry .info .meta { color: var(--slate); font-size: 12px; }
+
+  .hidden { display: none !important; }
+
   .state-screen {
     max-width: 520px; margin: 70px auto; background: #fff; border: 1px solid var(--paper-line);
     border-radius: 4px; padding: 40px; text-align: center;
@@ -189,11 +264,11 @@
   .state-screen p { color: var(--slate); font-size: 14px; line-height: 1.6; }
   .state-screen.error p { color: #B23A48; }
 
-  .hidden { display: none !important; }
-
   @media print {
     @page { size: landscape; margin: 0.3in; }
     nav.subnav, .toolbar, .btn { display: none !important; }
+    .grid-view { display: block !important; }
+    .agenda-view { display: none !important; }
     .masthead {
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
       padding: 8px 18px !important;
@@ -292,12 +367,25 @@
     <div class="summary" id="summary"></div>
 
     <div class="calendar-wrap">
-      <table class="cal">
-        <thead>
-          <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
-        </thead>
-        <tbody id="calBody"></tbody>
-      </table>
+      <div class="grid-view">
+        <table class="cal">
+          <thead>
+            <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+          </thead>
+          <tbody id="calBody"></tbody>
+        </table>
+      </div>
+      <div class="agenda-view" id="agendaView"></div>
+    </div>
+  </div>
+
+  <div id="dayModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modalDate"></span>
+        <button id="modalClose" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
     </div>
   </div>
 

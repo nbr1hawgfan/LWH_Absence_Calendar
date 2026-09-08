@@ -5,9 +5,9 @@
 // export re-runs, unlike a Drive file link.
 // ============================================================================
 const CONFIG = {
-  PTO_REQUESTS_CSV_URL:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=491852524&single=true&output=csv',
-  EMPLOYEES_CSV_URL:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=1288918784&single=true&output=csv',
-  ABSENCE_TYPES_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=2133598834&single=true&output=csv'
+  PTO_REQUESTS_CSV_URL:   'PASTE_PUBLISHED_CSV_URL_FOR_Export_PTORequests_HERE',
+  EMPLOYEES_CSV_URL:      'PASTE_PUBLISHED_CSV_URL_FOR_Export_Employees_HERE',
+  ABSENCE_TYPES_CSV_URL:  'PASTE_PUBLISHED_CSV_URL_FOR_Export_AbsenceTypes_HERE'
 };
 
 const TYPE_COLORS = {
@@ -84,10 +84,27 @@ function expandBusinessDays(start, end) {
   const last = new Date(e.getFullYear(), e.getMonth(), e.getDate());
   while (cur <= last) {
     const dow = cur.getDay();
-    if (dow !== 0 && dow !== 6) days.push(new Date(cur));
+    if (dow !== 0 && dow !== 6 && !isMajorHoliday(cur)) days.push(new Date(cur));
     cur.setDate(cur.getDate() + 1);
   }
   return days;
+}
+
+// Ported from the tracker's own Code.gs isMajorHoliday() - same 6
+// company holidays, same logic, so the calendar doesn't show someone
+// as "out" on a day nobody was scheduled to work anyway.
+function isMajorHoliday(date) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = date.getDay();
+
+  if (month === 1 && day === 1) return true;                                  // New Year's Day
+  if (month === 5 && dayOfWeek === 1 && day >= 25 && day <= 31) return true;   // Memorial Day
+  if (month === 7 && day === 4) return true;                                  // Independence Day
+  if (month === 9 && dayOfWeek === 1 && day >= 1 && day <= 7) return true;     // Labor Day
+  if (month === 11 && dayOfWeek === 4 && day >= 22 && day <= 28) return true;  // Thanksgiving
+  if (month === 12 && day === 25) return true;                                // Christmas
+  return false;
 }
 
 function escapeHtml(s) {
@@ -114,8 +131,36 @@ const els = {
   showPending: document.getElementById('showPending'),
   legend: document.getElementById('legend'),
   summary: document.getElementById('summary'),
-  calBody: document.getElementById('calBody')
+  calBody: document.getElementById('calBody'),
+  agendaView: document.getElementById('agendaView'),
+  dayModal: document.getElementById('dayModal'),
+  modalDate: document.getElementById('modalDate'),
+  modalBody: document.getElementById('modalBody'),
+  modalClose: document.getElementById('modalClose')
 };
+
+let lastByDay = {}; // populated each render() - day-of-month -> entries, for modal + agenda lookups
+
+function openDayModal(day) {
+  const entries = lastByDay[day];
+  if (!entries || !entries.length) return;
+  const d = new Date(viewYear, viewMonth, day);
+  els.modalDate.textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  els.modalBody.innerHTML = entries
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(e => {
+      const suffix = e.status === 'Pending' ? ' (pending)' : '';
+      return `<div class="modal-entry">
+        <span class="dot" style="background:${colorFor(e.type)}"></span>
+        <div class="info"><div class="name">${escapeHtml(e.name)}</div><div class="meta">${escapeHtml(e.dept)} — ${escapeHtml(e.type)}${suffix}</div></div>
+      </div>`;
+    }).join('');
+  els.dayModal.classList.remove('hidden');
+}
+function closeDayModal() { els.dayModal.classList.add('hidden'); }
+els.modalClose.addEventListener('click', closeDayModal);
+els.dayModal.addEventListener('click', (e) => { if (e.target === els.dayModal) closeDayModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDayModal(); });
 
 document.getElementById('prevMonth').addEventListener('click', () => { shiftMonth(-1); });
 document.getElementById('nextMonth').addEventListener('click', () => { shiftMonth(1); });
@@ -253,6 +298,7 @@ function render() {
     const key = r.date.getDate();
     (byDay[key] = byDay[key] || []).push(r);
   });
+  lastByDay = byDay;
 
   const firstOfMonth = new Date(viewYear, viewMonth, 1);
   const startDow = firstOfMonth.getDay();
@@ -274,8 +320,10 @@ function render() {
     if (!inMonth) cls.push('outside');
     if (isWeekend) cls.push('weekend');
     if (isToday) cls.push('today');
+    if (inMonth && dayEntries.length) cls.push('has-entries');
 
-    html += `<td class="${cls.join(' ')}">`;
+    const dayAttr = inMonth ? ` data-day="${cursor.getDate()}"` : '';
+    html += `<td class="${cls.join(' ')}"${dayAttr}>`;
     html += `<div class="daynum"><span>${cursor.getDate()}</span><span class="count ${dayEntries.length ? '' : 'zero'}">${dayEntries.length}</span></div>`;
 
     if (dayEntries.length) {
@@ -293,6 +341,44 @@ function render() {
     cursor.setDate(cursor.getDate() + 1);
   }
   els.calBody.innerHTML = html;
+  els.calBody.querySelectorAll('td.has-entries').forEach(td => {
+    td.addEventListener('click', () => openDayModal(parseInt(td.dataset.day, 10)));
+  });
+
+  renderAgenda(byDay, today);
+}
+
+// Mobile agenda view: a scannable list of only the days that actually
+// have someone out, rather than a cramped 7-column grid that doesn't
+// work well on a phone.
+function renderAgenda(byDay, today) {
+  const dayNumbers = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+
+  if (dayNumbers.length === 0) {
+    els.agendaView.innerHTML = '<div class="agenda-empty">No absences matching the current filters this month.</div>';
+    return;
+  }
+
+  els.agendaView.innerHTML = dayNumbers.map(day => {
+    const d = new Date(viewYear, viewMonth, day);
+    const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+    const entries = byDay[day].slice().sort((a, b) => a.name.localeCompare(b.name));
+    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    const entryHtml = entries.map(e => {
+      const pendingCls = e.status === 'Pending' ? ' pending' : '';
+      const suffix = e.status === 'Pending' ? ' (pending)' : '';
+      return `<div class="agenda-entry${pendingCls}">
+        <span class="dot" style="background:${colorFor(e.type)}"></span>
+        <div><div class="name">${escapeHtml(e.name)}</div><div class="meta">${escapeHtml(e.dept)} — ${escapeHtml(e.type)}${suffix}</div></div>
+      </div>`;
+    }).join('');
+
+    return `<div class="agenda-day${isToday ? ' today' : ''}">
+      <div class="agenda-day-header"><span class="date">${dateLabel}</span><span class="count">${entries.length}</span></div>
+      <div class="agenda-entry-list">${entryHtml}</div>
+    </div>`;
+  }).join('');
 }
 
 loadData(false);
