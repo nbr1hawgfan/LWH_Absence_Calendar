@@ -192,11 +192,46 @@
   .hidden { display: none !important; }
 
   @media print {
-    @page { size: landscape; margin: 0.4in; }
+    @page { size: landscape; margin: 0.3in; }
     nav.subnav, .toolbar, .btn { display: none !important; }
-    .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .calendar-wrap { padding: 0; }
-    table.cal td { height: 90px; }
+    .masthead {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      padding: 8px 18px !important;
+    }
+    .masthead .badge { width: 30px !important; height: 30px !important; }
+    .masthead .wordmark { font-size: 13px !important; }
+    .masthead .subtitle { font-size: 9px !important; margin: 0 !important; }
+    .masthead .status { font-size: 9px !important; }
+    .masthead .status strong { font-size: 10px !important; }
+
+    .legend { padding: 5px 18px !important; gap: 4px 8px !important; }
+    .legend-chip { font-size: 9.5px !important; padding: 2px 7px 2px 6px !important; }
+    .legend-chip .dot { width: 6px !important; height: 6px !important; }
+
+    .summary { padding: 4px 18px !important; font-size: 10.5px !important; }
+
+    .calendar-wrap { padding: 4px 18px 0 !important; }
+
+    table.cal th { padding: 3px 6px !important; font-size: 9px !important; }
+    table.cal td {
+      height: 70px !important;
+      padding: 3px 5px 4px !important;
+      overflow: hidden !important;
+    }
+    table.cal tr { break-inside: avoid; }
+
+    .daynum { font-size: 12px !important; margin-bottom: 2px !important; }
+    .daynum .count { font-size: 8.5px !important; padding: 0 5px !important; }
+
+    .entry {
+      font-size: 8.5px !important;
+      line-height: 1.2 !important;
+      margin-bottom: 1px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .entry .dot { top: 3px !important; }
   }
 </style>
 </head>
