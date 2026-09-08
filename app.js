@@ -5,9 +5,9 @@
 // export re-runs, unlike a Drive file link.
 // ============================================================================
 const CONFIG = {
-  PTO_REQUESTS_CSV_URL:   'PASTE_PUBLISHED_CSV_URL_FOR_Export_PTORequests_HERE',
-  EMPLOYEES_CSV_URL:      'PASTE_PUBLISHED_CSV_URL_FOR_Export_Employees_HERE',
-  ABSENCE_TYPES_CSV_URL:  'PASTE_PUBLISHED_CSV_URL_FOR_Export_AbsenceTypes_HERE'
+  PTO_REQUESTS_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv',
+  EMPLOYEES_CSV_URL:     'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv',
+  ABSENCE_TYPES_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv'
 };
 
 const TYPE_COLORS = {
