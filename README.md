@@ -37,9 +37,9 @@ In the tracker spreadsheet:
 Open `app.js` and paste the three URLs into `CONFIG` near the top:
 ```js
 const CONFIG = {
-  PTO_REQUESTS_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv',
-  EMPLOYEES_CSV_URL:     'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv',
-  ABSENCE_TYPES_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv'
+  PTO_REQUESTS_CSV_URL:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=491852524&single=true&output=csv',
+  EMPLOYEES_CSV_URL:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=1288918784&single=true&output=csv',
+  ABSENCE_TYPES_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuPdjvjICInergHmx_qGJF4mI_iYgsrmWeF1nCr-WTdz3jhqG0yZ9LPcL1M9vJWP9i7n-1-JD8Q3xb/pub?gid=2133598834&single=true&output=csv'
 };
 ```
 
