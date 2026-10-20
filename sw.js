@@ -9,7 +9,7 @@
 // CONFIG URLs) and redeploying had no effect until this file itself
 // changed - the browser had no reason to check for a newer app.js.
 
-const CACHE_NAME = 'lwh-pto-calendar-v2';
+const CACHE_NAME = 'lwh-pto-calendar-v3';
 const SHELL_FILES = ['./index.html', './app.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
